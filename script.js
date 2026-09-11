@@ -18,6 +18,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const resPassportNo = document.getElementById('res-passport-no');
     const resExpiry = document.getElementById('res-expiry');
 
+    // Zoom Controls
+    let currentZoom = 1;
+    const btnZoomIn = document.getElementById('btn-zoom-in');
+    const btnZoomOut = document.getElementById('btn-zoom-out');
+    const btnZoomReset = document.getElementById('btn-zoom-reset');
+    const imgWrapper = document.getElementById('img-wrapper');
+
+    function updateZoom() {
+        imagePreview.style.transform = `scale(${currentZoom})`;
+    }
+
+    btnZoomIn.addEventListener('click', () => {
+        currentZoom += 0.25;
+        updateZoom();
+    });
+
+    btnZoomOut.addEventListener('click', () => {
+        currentZoom = Math.max(0.25, currentZoom - 0.25);
+        updateZoom();
+    });
+
+    btnZoomReset.addEventListener('click', () => {
+        currentZoom = 1;
+        updateZoom();
+        if(imgWrapper) {
+            imgWrapper.scrollTop = 0;
+            imgWrapper.scrollLeft = 0;
+        }
+    });
+
     // Drag and Drop Events
     dropZone.addEventListener('click', () => fileInput.click());
 
@@ -63,6 +93,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const imageUrl = e.target.result;
             imagePreview.src = imageUrl;
             
+            // Reset zoom
+            currentZoom = 1;
+            updateZoom();
+            if(imgWrapper) {
+                imgWrapper.scrollTop = 0;
+                imgWrapper.scrollLeft = 0;
+            }
+
             // Update UI
             dropZone.classList.add('hidden');
             previewContainer.classList.remove('hidden');
@@ -192,13 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // Update UI
-            resFirstName.innerText = firstName || "-";
-            resLastName.innerText = lastName || "-";
-            resSex.innerText = sex === 'M' ? 'Male' : (sex === 'F' ? 'Female' : sex);
-            resNationality.innerText = nationality || countryCode || "-";
-            resDob.innerText = formatDob(dobRaw) || "-";
-            resPassportNo.innerText = passportNo || "-";
-            resExpiry.innerText = formatExpiry(expiryRaw) || "-";
+            resFirstName.value = firstName || "";
+            resLastName.value = lastName || "";
+            resSex.value = sex === 'M' ? 'Male' : (sex === 'F' ? 'Female' : sex);
+            resNationality.value = nationality || countryCode || "";
+            resDob.value = formatDob(dobRaw) || "";
+            resPassportNo.value = passportNo || "";
+            resExpiry.value = formatExpiry(expiryRaw) || "";
 
             resultsSection.classList.remove('hidden');
         } catch (err) {
@@ -209,7 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Global copy function for the inline onclick handlers
     window.copyText = function(elementId) {
-        const text = document.getElementById(elementId).innerText;
+        const el = document.getElementById(elementId);
+        const text = el.value !== undefined ? el.value : el.innerText;
         if (text && text !== '-') {
             navigator.clipboard.writeText(text).then(() => {
                 // Find the icon that was clicked

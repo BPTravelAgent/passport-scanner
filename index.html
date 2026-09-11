@@ -33,7 +33,14 @@
                 
                 <!-- Image Preview Section -->
                 <div class="preview-container hidden" id="preview-container">
-                    <img id="image-preview" src="" alt="Passport Preview">
+                    <div class="zoom-controls">
+                        <button id="btn-zoom-in" title="Zoom In"><span class="material-icons">zoom_in</span></button>
+                        <button id="btn-zoom-out" title="Zoom Out"><span class="material-icons">zoom_out</span></button>
+                        <button id="btn-zoom-reset" title="Reset Zoom"><span class="material-icons">fit_screen</span></button>
+                    </div>
+                    <div class="img-wrapper" id="img-wrapper">
+                        <img id="image-preview" src="" alt="Passport Preview">
+                    </div>
                     <div class="scanning-overlay hidden" id="scanning-overlay">
                         <div class="spinner"></div>
                         <p id="scan-status">Analyzing Passport Data...</p>
@@ -48,56 +55,56 @@
                     <div class="row">
                         <div class="label">First name</div>
                         <div class="value-container">
-                            <span class="value" id="res-first-name">-</span>
+                            <input type="text" class="value-input" id="res-first-name" value="">
                             <span class="material-icons copy-btn" onclick="copyText('res-first-name')" title="Copy">content_copy</span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="label">Last name</div>
                         <div class="value-container">
-                            <span class="value" id="res-last-name">-</span>
+                            <input type="text" class="value-input" id="res-last-name" value="">
                             <span class="material-icons copy-btn" onclick="copyText('res-last-name')" title="Copy">content_copy</span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="label">Sex</div>
                         <div class="value-container">
-                            <span class="value" id="res-sex">-</span>
+                            <input type="text" class="value-input" id="res-sex" value="">
                             <span class="material-icons copy-btn" onclick="copyText('res-sex')" title="Copy">content_copy</span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="label">Nationality</div>
                         <div class="value-container">
-                            <span class="value" id="res-nationality">-</span>
+                            <input type="text" class="value-input" id="res-nationality" value="">
                             <span class="material-icons copy-btn" onclick="copyText('res-nationality')" title="Copy">content_copy</span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="label">Date of Birth</div>
                         <div class="value-container">
-                            <span class="value" id="res-dob">-</span>
+                            <input type="text" class="value-input" id="res-dob" value="">
                             <span class="material-icons copy-btn" onclick="copyText('res-dob')" title="Copy">content_copy</span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="label">Type of Travel Document</div>
                         <div class="value-container">
-                            <span class="value" id="res-type">PASSPORT</span>
+                            <input type="text" class="value-input" id="res-type" value="PASSPORT">
                             <span class="material-icons copy-btn" onclick="copyText('res-type')" title="Copy">content_copy</span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="label">Travel Document No</div>
                         <div class="value-container">
-                            <span class="value" id="res-passport-no">-</span>
+                            <input type="text" class="value-input" id="res-passport-no" value="">
                             <span class="material-icons copy-btn" onclick="copyText('res-passport-no')" title="Copy">content_copy</span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="label">Date of Expiry</div>
                         <div class="value-container">
-                            <span class="value" id="res-expiry">-</span>
+                            <input type="text" class="value-input" id="res-expiry" value="">
                             <span class="material-icons copy-btn" onclick="copyText('res-expiry')" title="Copy">content_copy</span>
                         </div>
                     </div>

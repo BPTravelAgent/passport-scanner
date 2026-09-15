@@ -470,6 +470,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ---- Camera Logic ----
+    const cameraSection = document.getElementById('camera-section');
+    const cameraFeed = document.getElementById('camera-feed');
+    const cameraCanvas = document.getElementById('camera-canvas');
+    let stream = null;
+
+    document.getElementById('btn-open-camera').addEventListener('click', async () => {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'environment', // Prefer rear camera
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
+            });
+            cameraFeed.srcObject = stream;
+            uploadSection.classList.add('hidden');
+            cameraSection.classList.remove('hidden');
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            alert("Could not access camera. Please ensure you have granted permissions.");
+        }
+    });
+
+    document.getElementById('btn-close-camera').addEventListener('click', () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        cameraSection.classList.add('hidden');
+        uploadSection.classList.remove('hidden');
+    });
+
+    document.getElementById('btn-capture-camera').addEventListener('click', () => {
+        if (!stream) return;
+        
+        // Draw video frame to canvas
+        cameraCanvas.width = cameraFeed.videoWidth;
+        cameraCanvas.height = cameraFeed.videoHeight;
+        const ctx = cameraCanvas.getContext('2d');
+        ctx.drawImage(cameraFeed, 0, 0, cameraCanvas.width, cameraCanvas.height);
+        
+        // Convert canvas to Blob/File
+        cameraCanvas.toBlob((blob) => {
+            const file = new File([blob], "camera_capture.jpg", { type: "image/jpeg" });
+            
+            // Close camera
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+            cameraSection.classList.add('hidden');
+            
+            // Process the file
+            handleFiles([file]);
+        }, 'image/jpeg', 0.95);
+    });
+
     function handleFiles(files) {
         uploadSection.classList.add('hidden');
         globalActions.classList.remove('hidden');

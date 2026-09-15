@@ -63,6 +63,33 @@
                     <p class="file-limits">(.JPG, .JPEG, .PNG Limit Size is 3 MB, Multiple allowed)</p>
                     <input type="file" id="file-input" accept="image/jpeg, image/png, image/jpg" multiple hidden>
                 </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <p style="margin-bottom: 15px; color: var(--text-light); font-weight: 500;">OR</p>
+                    <button class="btn btn-primary" id="btn-open-camera" style="width: 100%; max-width: 350px; font-size: 16px; padding: 12px;">
+                        <span class="material-icons" style="vertical-align: text-bottom; margin-right: 8px;">photo_camera</span>
+                        Scan with Camera
+                    </button>
+                </div>
+            </section>
+
+            <!-- Camera Interface -->
+            <section class="camera-section hidden" id="camera-section">
+                <div class="camera-container">
+                    <video id="camera-feed" autoplay playsinline></video>
+                    <div class="camera-overlay">
+                        <div class="mrz-guide"></div>
+                        <p class="guide-text">Align Passport MRZ (Bottom Lines) inside the box</p>
+                    </div>
+                </div>
+                <div class="camera-actions">
+                    <button class="btn btn-secondary" id="btn-close-camera" style="flex: 1; padding: 12px; font-size: 16px;">Cancel</button>
+                    <button class="btn btn-primary" id="btn-capture-camera" style="flex: 2; padding: 12px; font-size: 16px;">
+                        <span class="material-icons" style="vertical-align: text-bottom; margin-right: 5px;">camera</span>
+                        Capture
+                    </button>
+                </div>
+                <canvas id="camera-canvas" hidden></canvas>
             </section>
 
             <!-- Global Actions -->
@@ -204,6 +231,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
     
     <!-- Main Script -->
-    <script src="script.js?v=7"></script>
+    <script src="script.js?v=8"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // ---- Firebase Configuration ----
     const firebaseConfig = {
-        apiKey: "AIzaSyBcH-dZDDH9oRQG5X4c8dPjS5LfzasW4U",
+        apiKey: "AIzaSyBcH-dZDDDh9oRQG5X4c8dPjS5LfzasW4U",
         authDomain: "bptravel-passport.firebaseapp.com",
         projectId: "bptravel-passport",
         storageBucket: "bptravel-passport.firebasestorage.app",

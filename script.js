@@ -30,6 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
             trialDays: 14,
             trialStartDate: '2026-09-15T00:00:00.000Z',
             pic: 'Piumal/Piumal Pic.jpg'
+        },
+        {
+            username: 'Piyumi',
+            password: 'Piyumi@2027',
+            role: 'user',
+            type: 'trial',
+            trialDays: 30,
+            trialStartDate: new Date().toISOString(), // Start trial today
+            pic: 'Piyumi/Piyumi Pic.jpg'
         }
     ];
 
@@ -39,6 +48,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = localStorage.getItem(STORAGE_KEY);
         if (data) {
             users = JSON.parse(data);
+            
+            // Auto-migrate: Ensure any new default users (like Piyumi) are added to existing localStorage
+            let updated = false;
+            defaultUsers.forEach(defUser => {
+                if (!users.some(u => u.username === defUser.username)) {
+                    users.push(defUser);
+                    updated = true;
+                }
+            });
+            if (updated) saveUsers();
         } else {
             users = [...defaultUsers];
             saveUsers();

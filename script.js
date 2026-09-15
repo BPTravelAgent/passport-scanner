@@ -29,17 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 username: 'BPsanju',
                 pic: null
             });
-        } else if (username === 'Kamesh' && password === 'K@2027') {
+        } else if ((username === 'Kamesh' && password === 'K@2027') || (username === 'Piumal' && password === 'P@2027')) {
             // Trial user login
             const daysRemaining = checkTrialStatus();
             if (daysRemaining <= 0) {
                 loginError.textContent = 'Your 14-day trial has expired. You can no longer log in.';
                 loginError.classList.remove('hidden');
             } else {
+                const picPath = username === 'Kamesh' ? 'Kamesh/Kamesh Pic.jpg' : 'Piumal/Piumal Pic.jpg';
                 loginSuccess({
-                    username: 'Kamesh',
-                    pic: 'Kamesh/Kamesh Pic.jpg',
-                    trialMessage: `Welcome Kamesh! You have ${daysRemaining} days remaining in your trial.`
+                    username: username,
+                    pic: picPath,
+                    trialMessage: `Welcome ${username}! You have ${daysRemaining} days remaining in your trial.`
                 });
             }
         } else {

@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
     <!-- Login Screen -->
@@ -45,7 +45,10 @@
                     <img id="profile-pic" src="" alt="Profile" class="profile-pic hidden">
                     <div class="user-info">
                         <span id="profile-name" class="profile-name"></span>
-                        <button id="btn-logout" class="btn-logout">Logout</button>
+                        <div class="profile-actions">
+                            <button id="btn-admin-panel" class="btn-logout hidden" style="margin-right: 8px;">Admin</button>
+                            <button id="btn-logout" class="btn-logout">Logout</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -122,8 +125,79 @@
                 </div>
             </template>
         </main>
+
+        <!-- Admin Dashboard Section -->
+        <section id="admin-dashboard" class="admin-dashboard hidden">
+            <div class="admin-header">
+                <h2>User Management</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" id="btn-back-to-scanner">Back to Scanner</button>
+                    <button class="btn btn-primary" id="btn-open-add-user">Add New User</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="user-table" id="user-table">
+                    <thead>
+                        <tr>
+                            <th>Profile</th>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>Role</th>
+                            <th>Type</th>
+                            <th>Days Left</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 
-    <script src="script.js?v=3"></script>
+    <!-- Add User Modal -->
+    <div id="user-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal" id="close-user-modal">&times;</span>
+            <h2 id="modal-title">Add New User</h2>
+            <form id="user-form">
+                <input type="hidden" id="edit-original-username">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="add-username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="text" id="add-password" required>
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="add-role" class="form-control">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Account Type</label>
+                    <select id="add-type" class="form-control">
+                        <option value="trial">Trial</option>
+                        <option value="pro">Pro (No limit)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="trial-days-group">
+                    <label>Trial Days (From Today)</label>
+                    <input type="number" id="add-trial-days" value="14" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Profile Picture</label>
+                    <input type="file" id="add-profile-pic" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary login-btn">Save User</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js?v=4"></script>
 </body>
 </html>

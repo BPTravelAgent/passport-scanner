@@ -1,70 +1,126 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ---- State Management ----
+    const STORAGE_KEY = 'passport_scanner_users';
+    
+    // Default Users
+    const defaultUsers = [
+        {
+            username: 'BPsanju',
+            password: 'Sanju@2027',
+            role: 'admin',
+            type: 'pro',
+            trialDays: 0,
+            trialStartDate: null,
+            pic: null
+        },
+        {
+            username: 'Kamesh',
+            password: 'K@2027',
+            role: 'user',
+            type: 'trial',
+            trialDays: 14,
+            trialStartDate: '2026-09-15T00:00:00.000Z',
+            pic: 'Kamesh/Kamesh Pic.jpg'
+        },
+        {
+            username: 'Piumal',
+            password: 'P@2027',
+            role: 'user',
+            type: 'trial',
+            trialDays: 14,
+            trialStartDate: '2026-09-15T00:00:00.000Z',
+            pic: 'Piumal/Piumal Pic.jpg'
+        }
+    ];
+
+    let users = [];
+
+    function loadUsers() {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+            users = JSON.parse(data);
+        } else {
+            users = [...defaultUsers];
+            saveUsers();
+        }
+    }
+
+    function saveUsers() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+        } catch (e) {
+            alert('Error saving data. Storage might be full due to large profile pictures.');
+        }
+    }
+
+    loadUsers();
+
+    // ---- Login Logic ----
     const loginScreen = document.getElementById('login-screen');
     const mainApp = document.getElementById('main-app');
     const loginForm = document.getElementById('login-form');
     const loginError = document.getElementById('login-error');
-    
-    // Trial logic constants
-    const TRIAL_START_DATE = new Date('2026-09-15T00:00:00');
-    const TRIAL_DAYS = 14;
+    let currentUser = null;
 
-    function checkTrialStatus() {
+    function getDaysRemaining(user) {
+        if (user.type === 'pro') return 999;
+        const start = new Date(user.trialStartDate);
         const now = new Date();
-        const diffTime = now.getTime() - TRIAL_START_DATE.getTime();
+        const diffTime = now.getTime() - start.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        const daysRemaining = TRIAL_DAYS - diffDays;
-        return daysRemaining;
+        return user.trialDays - diffDays;
     }
 
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
+        const usernameInput = document.getElementById('username').value.trim();
+        const passwordInput = document.getElementById('password').value;
 
         loginError.classList.add('hidden');
+        
+        const user = users.find(u => u.username === usernameInput && u.password === passwordInput);
 
-        if (username === 'BPsanju' && password === 'Sanju@2027') {
-            // Admin login
-            loginSuccess({
-                username: 'BPsanju',
-                pic: null
-            });
-        } else if ((username === 'Kamesh' && password === 'K@2027') || (username === 'Piumal' && password === 'P@2027')) {
-            // Trial user login
-            const daysRemaining = checkTrialStatus();
-            if (daysRemaining <= 0) {
-                loginError.textContent = 'Your 14-day trial has expired. You can no longer log in.';
-                loginError.classList.remove('hidden');
-            } else {
-                const picPath = username === 'Kamesh' ? 'Kamesh/Kamesh Pic.jpg' : 'Piumal/Piumal Pic.jpg';
-                loginSuccess({
-                    username: username,
-                    pic: picPath,
-                    trialMessage: `Welcome ${username}! You have ${daysRemaining} days remaining in your trial.`
-                });
+        if (user) {
+            if (user.type === 'trial') {
+                const daysLeft = getDaysRemaining(user);
+                if (daysLeft <= 0) {
+                    loginError.textContent = 'Your trial has expired. Please contact support.';
+                    loginError.classList.remove('hidden');
+                    return;
+                }
             }
+            currentUser = user;
+            loginSuccess();
         } else {
             loginError.textContent = 'Invalid username or password.';
             loginError.classList.remove('hidden');
         }
     });
 
-    function loginSuccess(user) {
+    function loginSuccess() {
         loginScreen.classList.add('hidden');
         mainApp.classList.remove('hidden');
         
         const profileName = document.getElementById('profile-name');
         const profilePic = document.getElementById('profile-pic');
         const userProfile = document.getElementById('user-profile');
+        const btnAdminPanel = document.getElementById('btn-admin-panel');
         
-        profileName.textContent = user.username;
-        if (user.pic) {
-            profilePic.src = user.pic;
+        profileName.textContent = currentUser.username;
+        if (currentUser.pic) {
+            profilePic.src = currentUser.pic;
             profilePic.classList.remove('hidden');
         } else {
             profilePic.classList.add('hidden');
         }
         userProfile.classList.remove('hidden');
+        
+        // Show Admin button if admin
+        if (currentUser.role === 'admin') {
+            btnAdminPanel.classList.remove('hidden');
+        } else {
+            btnAdminPanel.classList.add('hidden');
+        }
         
         // Remove existing banner if any
         const existingBanner = mainApp.querySelector('.trial-banner');
@@ -72,20 +128,215 @@ document.addEventListener('DOMContentLoaded', () => {
             existingBanner.remove();
         }
 
-        if (user.trialMessage) {
+        if (currentUser.type === 'trial') {
+            const daysLeft = getDaysRemaining(currentUser);
             const banner = document.createElement('div');
             banner.className = 'trial-banner';
-            banner.textContent = user.trialMessage;
+            banner.textContent = `Welcome ${currentUser.username}! You have ${daysLeft} days remaining in your trial.`;
             mainApp.insertBefore(banner, mainApp.firstChild);
         }
     }
 
     document.getElementById('btn-logout').addEventListener('click', () => {
         mainApp.classList.add('hidden');
+        document.getElementById('admin-dashboard').classList.add('hidden');
+        document.querySelector('.main-content').classList.remove('hidden'); // Reset to scanner view
         loginScreen.classList.remove('hidden');
         document.getElementById('login-form').reset();
         loginError.classList.add('hidden');
+        currentUser = null;
     });
+
+    // ---- Admin Dashboard Logic ----
+    const adminDashboard = document.getElementById('admin-dashboard');
+    const scannerSection = document.querySelector('.main-content');
+    const userTableBody = document.getElementById('user-table-body');
+    const userModal = document.getElementById('user-modal');
+    const userForm = document.getElementById('user-form');
+    
+    document.getElementById('btn-admin-panel').addEventListener('click', () => {
+        scannerSection.classList.add('hidden');
+        adminDashboard.classList.remove('hidden');
+        renderUserTable();
+    });
+
+    document.getElementById('btn-back-to-scanner').addEventListener('click', () => {
+        adminDashboard.classList.add('hidden');
+        scannerSection.classList.remove('hidden');
+    });
+
+    function renderUserTable() {
+        userTableBody.innerHTML = '';
+        users.forEach((user, index) => {
+            const tr = document.createElement('tr');
+            
+            const picCell = user.pic ? `<img src="${user.pic}" class="table-profile-pic">` : `<div class="table-profile-pic"></div>`;
+            const daysLeftStr = user.type === 'pro' ? 'Unlimited' : (getDaysRemaining(user) > 0 ? getDaysRemaining(user) : 'Expired');
+            
+            tr.innerHTML = `
+                <td>${picCell}</td>
+                <td>${user.username}</td>
+                <td>${user.password}</td>
+                <td><span style="text-transform: capitalize;">${user.role}</span></td>
+                <td><span style="text-transform: capitalize;">${user.type}</span></td>
+                <td>${daysLeftStr}</td>
+                <td>
+                    <button class="btn btn-secondary btn-edit-user" data-index="${index}" style="padding: 5px 10px; font-size: 12px;">Edit</button>
+                    ${user.username !== currentUser.username ? `<button class="btn btn-secondary btn-delete-user" data-index="${index}" style="padding: 5px 10px; font-size: 12px; border-color: var(--error-color); color: var(--error-color);">Delete</button>` : ''}
+                </td>
+            `;
+            userTableBody.appendChild(tr);
+        });
+
+        document.querySelectorAll('.btn-edit-user').forEach(btn => {
+            btn.addEventListener('click', (e) => openUserModal(e.target.dataset.index));
+        });
+        document.querySelectorAll('.btn-delete-user').forEach(btn => {
+            btn.addEventListener('click', (e) => deleteUser(e.target.dataset.index));
+        });
+    }
+
+    document.getElementById('btn-open-add-user').addEventListener('click', () => {
+        openUserModal(-1);
+    });
+
+    document.getElementById('close-user-modal').addEventListener('click', () => {
+        userModal.classList.add('hidden');
+    });
+
+    document.getElementById('add-type').addEventListener('change', (e) => {
+        const trialDaysGroup = document.getElementById('trial-days-group');
+        if (e.target.value === 'pro') {
+            trialDaysGroup.classList.add('hidden');
+        } else {
+            trialDaysGroup.classList.remove('hidden');
+        }
+    });
+
+    function openUserModal(index) {
+        userForm.reset();
+        const modalTitle = document.getElementById('modal-title');
+        
+        if (index === -1) {
+            modalTitle.textContent = 'Add New User';
+            document.getElementById('edit-original-username').value = '';
+            document.getElementById('trial-days-group').classList.remove('hidden');
+        } else {
+            modalTitle.textContent = 'Edit User';
+            const user = users[index];
+            document.getElementById('edit-original-username').value = user.username;
+            document.getElementById('add-username').value = user.username;
+            document.getElementById('add-password').value = user.password;
+            document.getElementById('add-role').value = user.role;
+            document.getElementById('add-type').value = user.type;
+            document.getElementById('add-trial-days').value = user.trialDays || 14;
+            
+            if (user.type === 'pro') {
+                document.getElementById('trial-days-group').classList.add('hidden');
+            } else {
+                document.getElementById('trial-days-group').classList.remove('hidden');
+            }
+        }
+        
+        userModal.classList.remove('hidden');
+    }
+
+    userForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const originalUsername = document.getElementById('edit-original-username').value;
+        const newUsername = document.getElementById('add-username').value.trim();
+        const password = document.getElementById('add-password').value;
+        const role = document.getElementById('add-role').value;
+        const type = document.getElementById('add-type').value;
+        const trialDays = parseInt(document.getElementById('add-trial-days').value);
+        const fileInput = document.getElementById('add-profile-pic');
+        
+        // Check duplicate
+        if (originalUsername !== newUsername && users.some(u => u.username === newUsername)) {
+            alert('Username already exists!');
+            return;
+        }
+
+        let picBase64 = null;
+        if (fileInput.files.length > 0) {
+            picBase64 = await resizeImage(fileInput.files[0], 200);
+        }
+
+        const newUserObj = {
+            username: newUsername,
+            password: password,
+            role: role,
+            type: type,
+            trialDays: type === 'pro' ? 0 : trialDays,
+            trialStartDate: type === 'pro' ? null : new Date().toISOString(),
+            pic: picBase64
+        };
+
+        if (originalUsername) {
+            // Edit existing
+            const index = users.findIndex(u => u.username === originalUsername);
+            // Retain old pic and start date if not changing
+            if (!picBase64) newUserObj.pic = users[index].pic;
+            if (type === 'trial' && users[index].type === 'trial' && originalUsername === newUsername) {
+                // If they are just editing but keeping it trial, retain start date
+                newUserObj.trialStartDate = users[index].trialStartDate;
+            }
+            users[index] = newUserObj;
+            if (currentUser.username === originalUsername) {
+                currentUser = newUserObj;
+            }
+        } else {
+            // Add new
+            users.push(newUserObj);
+        }
+
+        saveUsers();
+        userModal.classList.add('hidden');
+        renderUserTable();
+    });
+
+    function deleteUser(index) {
+        if (confirm(`Are you sure you want to delete ${users[index].username}?`)) {
+            users.splice(index, 1);
+            saveUsers();
+            renderUserTable();
+        }
+    }
+
+    // Utility: Resize and compress image to base64
+    function resizeImage(file, maxSize) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > height) {
+                        if (width > maxSize) {
+                            height *= maxSize / width;
+                            width = maxSize;
+                        }
+                    } else {
+                        if (height > maxSize) {
+                            width *= maxSize / height;
+                            height = maxSize;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');

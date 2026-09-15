@@ -23,103 +23,74 @@
 
         <main class="main-content">
             <!-- Upload Section -->
-            <section class="upload-section">
+            <section class="upload-section" id="upload-section">
                 <div class="drop-zone" id="drop-zone">
                     <span class="material-icons upload-icon">upload_file</span>
-                    <p class="drop-text">Drag and drop file or <span class="browse-link">browse</span> from computer</p>
-                    <p class="file-limits">(.JPG, .JPEG, .PNG Limit Size is 3 MB)</p>
-                    <input type="file" id="file-input" accept="image/jpeg, image/png, image/jpg" hidden>
-                </div>
-                
-                <!-- Image Preview Section -->
-                <div class="preview-container hidden" id="preview-container">
-                    <div class="zoom-controls">
-                        <button id="btn-zoom-in" title="Zoom In"><span class="material-icons">zoom_in</span></button>
-                        <button id="btn-zoom-out" title="Zoom Out"><span class="material-icons">zoom_out</span></button>
-                        <button id="btn-zoom-reset" title="Reset Zoom"><span class="material-icons">fit_screen</span></button>
-                    </div>
-                    <div class="img-wrapper" id="img-wrapper">
-                        <img id="image-preview" src="" alt="Passport Preview">
-                    </div>
-                    <div class="scanning-overlay hidden" id="scanning-overlay">
-                        <div class="spinner"></div>
-                        <p id="scan-status">Analyzing Passport Data...</p>
-                    </div>
+                    <p class="drop-text">Drag and drop files or <span class="browse-link">browse</span> from computer</p>
+                    <p class="file-limits">(.JPG, .JPEG, .PNG Limit Size is 3 MB, Multiple allowed)</p>
+                    <input type="file" id="file-input" accept="image/jpeg, image/png, image/jpg" multiple hidden>
                 </div>
             </section>
 
-            <!-- Results Section -->
-            <section class="results-section hidden" id="results-section">
-                <h2>Extracted Information</h2>
-                <div class="results-table">
-                    <div class="row">
-                        <div class="label">First name</div>
-                        <div class="value-container">
-                            <input type="text" class="value-input" id="res-first-name" value="">
-                            <span class="material-icons copy-btn" onclick="copyText('res-first-name')" title="Copy">content_copy</span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="label">Last name</div>
-                        <div class="value-container">
-                            <input type="text" class="value-input" id="res-last-name" value="">
-                            <span class="material-icons copy-btn" onclick="copyText('res-last-name')" title="Copy">content_copy</span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="label">Sex</div>
-                        <div class="value-container">
-                            <input type="text" class="value-input" id="res-sex" value="">
-                            <span class="material-icons copy-btn" onclick="copyText('res-sex')" title="Copy">content_copy</span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="label">Nationality</div>
-                        <div class="value-container">
-                            <input type="text" class="value-input" id="res-nationality" value="">
-                            <span class="material-icons copy-btn" onclick="copyText('res-nationality')" title="Copy">content_copy</span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="label">Date of Birth</div>
-                        <div class="value-container">
-                            <input type="text" class="value-input" id="res-dob" value="">
-                            <span class="material-icons copy-btn" onclick="copyText('res-dob')" title="Copy">content_copy</span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="label">Type of Travel Document</div>
-                        <div class="value-container">
-                            <input type="text" class="value-input" id="res-type" value="PASSPORT">
-                            <span class="material-icons copy-btn" onclick="copyText('res-type')" title="Copy">content_copy</span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="label">Travel Document No</div>
-                        <div class="value-container">
-                            <input type="text" class="value-input" id="res-passport-no" value="">
-                            <span class="material-icons copy-btn" onclick="copyText('res-passport-no')" title="Copy">content_copy</span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="label">Date of Expiry</div>
-                        <div class="value-container">
-                            <input type="text" class="value-input" id="res-expiry" value="">
-                            <span class="material-icons copy-btn" onclick="copyText('res-expiry')" title="Copy">content_copy</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-secondary" id="btn-reset">Scan Another</button>
-                    <button class="btn btn-primary" id="btn-confirm">Confirm Details</button>
-                </div>
-            </section>
-            
-            <!-- Error Banner -->
-            <div class="error-banner hidden" id="error-banner">
-                <span class="material-icons">error</span>
-                <span id="error-message">Failed to read passport. Please upload a clear image showing the bottom 2 lines.</span>
+            <!-- Global Actions -->
+            <div id="global-actions" class="global-actions hidden">
+                <button class="btn btn-secondary" id="btn-add-more">Add More Passports</button>
+                <button class="btn btn-secondary" id="btn-reset-all">Reset All</button>
+                <button class="btn btn-primary" id="btn-copy-all-global"><span class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">content_copy</span> Copy All Data</button>
             </div>
+
+            <!-- Container for Passport Cards -->
+            <div id="cards-container" class="cards-container"></div>
+            
+            <!-- Template for Passport Card -->
+            <template id="passport-card-template">
+                <div class="passport-card">
+                    <!-- Image Preview Section -->
+                    <div class="preview-container">
+                        <div class="zoom-controls">
+                            <button class="btn-rotate-left" title="Rotate Left"><span class="material-icons">rotate_left</span></button>
+                            <button class="btn-rotate-right" title="Rotate Right"><span class="material-icons">rotate_right</span></button>
+                            <button class="btn-zoom-in" title="Zoom In"><span class="material-icons">zoom_in</span></button>
+                            <button class="btn-zoom-out" title="Zoom Out"><span class="material-icons">zoom_out</span></button>
+                            <button class="btn-zoom-reset" title="Reset Zoom"><span class="material-icons">fit_screen</span></button>
+                        </div>
+                        <div class="img-wrapper">
+                            <img class="image-preview" src="" alt="Passport Preview">
+                        </div>
+                        <div class="scanning-overlay hidden">
+                            <div class="spinner"></div>
+                            <p class="scan-status">Analyzing Passport Data...</p>
+                        </div>
+                        <div class="card-image-actions">
+                            <button class="btn btn-secondary btn-rescan"><span class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">refresh</span> Re-scan Image</button>
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="results-section hidden">
+                        <h2>Extracted Information</h2>
+                        <div class="results-table">
+                            <div class="row"><div class="label">First name</div><div class="value-container"><input type="text" class="value-input res-first-name" data-field="First name"><span class="material-icons copy-btn" title="Copy">content_copy</span></div></div>
+                            <div class="row"><div class="label">Last name</div><div class="value-container"><input type="text" class="value-input res-last-name" data-field="Last name"><span class="material-icons copy-btn" title="Copy">content_copy</span></div></div>
+                            <div class="row"><div class="label">Sex</div><div class="value-container"><input type="text" class="value-input res-sex" data-field="Sex"><span class="material-icons copy-btn" title="Copy">content_copy</span></div></div>
+                            <div class="row"><div class="label">Nationality</div><div class="value-container"><input type="text" class="value-input res-nationality" data-field="Nationality"><span class="material-icons copy-btn" title="Copy">content_copy</span></div></div>
+                            <div class="row"><div class="label">Date of Birth</div><div class="value-container"><input type="text" class="value-input res-dob" data-field="Date of Birth"><span class="material-icons copy-btn" title="Copy">content_copy</span></div></div>
+                            <div class="row"><div class="label">Type</div><div class="value-container"><input type="text" class="value-input res-type" value="PASSPORT" data-field="Type"><span class="material-icons copy-btn" title="Copy">content_copy</span></div></div>
+                            <div class="row"><div class="label">Passport No</div><div class="value-container"><input type="text" class="value-input res-passport-no" data-field="Passport No"><span class="material-icons copy-btn" title="Copy">content_copy</span></div></div>
+                            <div class="row"><div class="label">Date of Expiry</div><div class="value-container"><input type="text" class="value-input res-expiry" data-field="Date of Expiry"><span class="material-icons copy-btn" title="Copy">content_copy</span></div></div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary btn-copy-card"><span class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">content_copy</span> Copy All Details</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Error Banner -->
+                    <div class="error-banner hidden">
+                        <span class="material-icons">error</span>
+                        <span class="error-message">Failed to read passport.</span>
+                    </div>
+                </div>
+            </template>
         </main>
     </div>
 

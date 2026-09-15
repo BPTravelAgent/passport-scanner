@@ -1,148 +1,307 @@
 document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
-    const previewContainer = document.getElementById('preview-container');
-    const imagePreview = document.getElementById('image-preview');
-    const scanningOverlay = document.getElementById('scanning-overlay');
-    const scanStatus = document.getElementById('scan-status');
-    const resultsSection = document.getElementById('results-section');
-    const errorBanner = document.getElementById('error-banner');
-    const btnReset = document.getElementById('btn-reset');
-
-    // UI Elements for Results
-    const resFirstName = document.getElementById('res-first-name');
-    const resLastName = document.getElementById('res-last-name');
-    const resSex = document.getElementById('res-sex');
-    const resNationality = document.getElementById('res-nationality');
-    const resDob = document.getElementById('res-dob');
-    const resPassportNo = document.getElementById('res-passport-no');
-    const resExpiry = document.getElementById('res-expiry');
-
-    // Zoom Controls
-    let currentZoom = 1;
-    const btnZoomIn = document.getElementById('btn-zoom-in');
-    const btnZoomOut = document.getElementById('btn-zoom-out');
-    const btnZoomReset = document.getElementById('btn-zoom-reset');
-    const imgWrapper = document.getElementById('img-wrapper');
-
-    function updateZoom() {
-        imagePreview.style.transform = `scale(${currentZoom})`;
-    }
-
-    btnZoomIn.addEventListener('click', () => {
-        currentZoom += 0.25;
-        updateZoom();
+    const cardsContainer = document.getElementById('cards-container');
+    const template = document.getElementById('passport-card-template');
+    const globalActions = document.getElementById('global-actions');
+    const uploadSection = document.getElementById('upload-section');
+    
+    // Global Action Buttons
+    document.getElementById('btn-add-more').addEventListener('click', () => fileInput.click());
+    document.getElementById('btn-reset-all').addEventListener('click', () => {
+        cardsContainer.innerHTML = '';
+        cardsData = [];
+        uploadSection.classList.remove('hidden');
+        globalActions.classList.add('hidden');
+        fileInput.value = '';
     });
-
-    btnZoomOut.addEventListener('click', () => {
-        currentZoom = Math.max(0.25, currentZoom - 0.25);
-        updateZoom();
-    });
-
-    btnZoomReset.addEventListener('click', () => {
-        currentZoom = 1;
-        updateZoom();
-        if(imgWrapper) {
-            imgWrapper.scrollTop = 0;
-            imgWrapper.scrollLeft = 0;
+    document.getElementById('btn-copy-all-global').addEventListener('click', (e) => {
+        let allDataText = '';
+        cardsData.forEach((card, index) => {
+            if (card.status === 'success') {
+                allDataText += `--- Passport ${index + 1} ---\n`;
+                allDataText += getCardDataText(card) + '\n\n';
+            }
+        });
+        if (allDataText) {
+            copyToClipboard(allDataText.trim(), e.target);
+        } else {
+            alert('No successful scans to copy.');
         }
     });
 
+    let cardsData = [];
+    let isProcessing = false;
+    let scanQueue = [];
+
     // Drag and Drop Events
     dropZone.addEventListener('click', () => fileInput.click());
-
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.classList.add('dragover');
     });
-
     dropZone.addEventListener('dragleave', () => {
         dropZone.classList.remove('dragover');
     });
-
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.classList.remove('dragover');
         if (e.dataTransfer.files.length) {
-            handleFile(e.dataTransfer.files[0]);
+            handleFiles(e.dataTransfer.files);
         }
     });
-
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length) {
-            handleFile(e.target.files[0]);
+            handleFiles(e.target.files);
         }
     });
 
-    btnReset.addEventListener('click', () => {
-        resultsSection.classList.add('hidden');
-        previewContainer.classList.add('hidden');
-        dropZone.classList.remove('hidden');
-        errorBanner.classList.add('hidden');
-        fileInput.value = '';
-    });
+    function handleFiles(files) {
+        uploadSection.classList.add('hidden');
+        globalActions.classList.remove('hidden');
 
-    function handleFile(file) {
-        if (!file.type.startsWith('image/')) {
-            showError("Please upload a valid image file.");
-            return;
-        }
+        Array.from(files).forEach(file => {
+            if (file.type.startsWith('image/')) {
+                createPassportCard(file);
+            }
+        });
+        
+        processQueue();
+    }
 
+    function createPassportCard(file) {
+        const cardClone = template.content.cloneNode(true);
+        const cardElement = cardClone.querySelector('.passport-card');
+        
+        const card = {
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
+            file: file,
+            originalImageSrc: '',
+            rotation: 0,
+            zoom: 1,
+            status: 'pending', // pending, scanning, success, error
+            ui: {
+                cardElement: cardElement,
+                imagePreview: cardElement.querySelector('.image-preview'),
+                imgWrapper: cardElement.querySelector('.img-wrapper'),
+                scanningOverlay: cardElement.querySelector('.scanning-overlay'),
+                scanStatus: cardElement.querySelector('.scan-status'),
+                resultsSection: cardElement.querySelector('.results-section'),
+                errorBanner: cardElement.querySelector('.error-banner'),
+                errorMessage: cardElement.querySelector('.error-message'),
+                inputs: {
+                    firstName: cardElement.querySelector('.res-first-name'),
+                    lastName: cardElement.querySelector('.res-last-name'),
+                    sex: cardElement.querySelector('.res-sex'),
+                    nationality: cardElement.querySelector('.res-nationality'),
+                    dob: cardElement.querySelector('.res-dob'),
+                    type: cardElement.querySelector('.res-type'),
+                    passportNo: cardElement.querySelector('.res-passport-no'),
+                    expiry: cardElement.querySelector('.res-expiry')
+                }
+            }
+        };
+
+        // Initialize Pan State
+        card.panX = 0;
+        card.panY = 0;
+
+        // Attach Zoom and Rotate Event Listeners
+        cardElement.querySelector('.btn-rotate-left').addEventListener('click', () => updateTransform(card, -90, 0));
+        cardElement.querySelector('.btn-rotate-right').addEventListener('click', () => updateTransform(card, 90, 0));
+        cardElement.querySelector('.btn-zoom-in').addEventListener('click', () => updateTransform(card, 0, 0.25));
+        cardElement.querySelector('.btn-zoom-out').addEventListener('click', () => updateTransform(card, 0, -0.25));
+        cardElement.querySelector('.btn-zoom-reset').addEventListener('click', () => {
+            card.rotation = 0;
+            card.zoom = 1;
+            card.panX = 0;
+            card.panY = 0;
+            updateTransform(card, 0, 0);
+        });
+
+        // Mouse Drag to Pan
+        let isDragging = false;
+        let startX, startY, initialPanX, initialPanY;
+
+        card.ui.imgWrapper.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            initialPanX = card.panX;
+            initialPanY = card.panY;
+            e.preventDefault(); // Prevent default image drag
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            card.panX = initialPanX + dx;
+            card.panY = initialPanY + dy;
+            updateTransform(card, 0, 0);
+        });
+
+        // Mouse Wheel to Zoom
+        card.ui.imgWrapper.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault(); // Prevent page zooming
+                if (e.deltaY < 0) {
+                    updateTransform(card, 0, 0.15); // zoom in
+                } else {
+                    updateTransform(card, 0, -0.15); // zoom out
+                }
+            }
+        });
+
+        // Copy buttons per field
+        cardElement.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const input = e.target.previousElementSibling;
+                copyToClipboard(input.value, e.target);
+            });
+        });
+
+        // Copy all details
+        cardElement.querySelector('.btn-copy-card').addEventListener('click', (e) => {
+            const text = getCardDataText(card);
+            copyToClipboard(text, e.target);
+        });
+
+        // Re-scan logic
+        cardElement.querySelector('.btn-rescan').addEventListener('click', () => {
+            if(isProcessing) {
+                alert("Please wait for current scans to finish before re-scanning.");
+                return;
+            }
+            rescanCard(card);
+        });
+
+        // Load Image
         const reader = new FileReader();
         reader.onload = (e) => {
-            const imageUrl = e.target.result;
-            imagePreview.src = imageUrl;
+            card.originalImageSrc = e.target.result;
+            card.ui.imagePreview.src = card.originalImageSrc;
             
-            // Reset zoom
-            currentZoom = 1;
-            updateZoom();
-            if(imgWrapper) {
-                imgWrapper.scrollTop = 0;
-                imgWrapper.scrollLeft = 0;
-            }
-
-            // Update UI
-            dropZone.classList.add('hidden');
-            previewContainer.classList.remove('hidden');
-            scanningOverlay.classList.remove('hidden');
-            resultsSection.classList.add('hidden');
-            errorBanner.classList.add('hidden');
+            cardsData.push(card);
+            cardsContainer.appendChild(cardElement);
+            scanQueue.push(card);
             
-            scanStatus.innerText = "Initializing OCR Engine...";
-
-            // Start OCR
-            processImage(imageUrl);
+            // Check if queue needs to start
+            processQueue();
         };
         reader.readAsDataURL(file);
     }
 
-    function showError(message) {
-        errorBanner.classList.remove('hidden');
-        document.getElementById('error-message').innerText = message;
-        scanningOverlay.classList.add('hidden');
+    function updateTransform(card, rotChange, zoomChange) {
+        card.rotation = (card.rotation + rotChange) % 360;
+        card.zoom = Math.max(0.25, card.zoom + zoomChange);
+        
+        card.panX = card.panX || 0;
+        card.panY = card.panY || 0;
+        
+        // Remove CSS transition while dragging to ensure smooth movement
+        if (rotChange === 0 && zoomChange === 0) {
+            card.ui.imagePreview.style.transition = 'none';
+        } else {
+            card.ui.imagePreview.style.transition = 'transform 0.1s ease-out';
+        }
+        
+        card.ui.imagePreview.style.transform = `translate(${card.panX}px, ${card.panY}px) scale(${card.zoom}) rotate(${card.rotation}deg)`;
     }
 
-    async function processImage(imageUrl) {
+    function showError(card, message) {
+        card.ui.errorBanner.classList.remove('hidden');
+        card.ui.errorMessage.innerText = message;
+        card.ui.scanningOverlay.classList.add('hidden');
+        card.status = 'error';
+    }
+
+    async function processQueue() {
+        if (isProcessing || scanQueue.length === 0) return;
+        
+        isProcessing = true;
+        const currentCard = scanQueue.shift();
+        
+        await runOCR(currentCard, currentCard.originalImageSrc);
+        
+        isProcessing = false;
+        processQueue(); // Process next in queue
+    }
+
+    async function rescanCard(card) {
+        card.ui.resultsSection.classList.add('hidden');
+        card.ui.errorBanner.classList.add('hidden');
+        
+        // If image was rotated, we need to create a new rotated canvas image for Tesseract
+        let targetSrc = card.originalImageSrc;
+        
+        if (card.rotation !== 0) {
+            targetSrc = await getRotatedImageBase64(card.originalImageSrc, card.rotation);
+        }
+
+        scanQueue.push({ ...card, isRescan: true, targetSrc: targetSrc, originalCardRef: card });
+        processQueue();
+    }
+    
+    function getRotatedImageBase64(src, rotation) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Calculate new canvas size
+                if (rotation === 90 || rotation === -270 || rotation === -90 || rotation === 270) {
+                    canvas.width = img.height;
+                    canvas.height = img.width;
+                } else {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                }
+                
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(rotation * Math.PI / 180);
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                resolve(canvas.toDataURL('image/jpeg'));
+            };
+            img.src = src;
+        });
+    }
+
+    async function runOCR(queueItem, defaultSrc) {
+        const card = queueItem.isRescan ? queueItem.originalCardRef : queueItem;
+        const targetSrc = queueItem.isRescan ? queueItem.targetSrc : defaultSrc;
+
+        card.status = 'scanning';
+        card.ui.scanningOverlay.classList.remove('hidden');
+        card.ui.scanStatus.innerText = "Initializing OCR Engine...";
+
         try {
-            scanStatus.innerText = "Reading Passport MRZ Data...";
-            
             const worker = await Tesseract.createWorker('eng', 1, {
                 logger: m => {
                     if(m.status === 'recognizing text') {
-                        scanStatus.innerText = `Scanning: ${Math.round(m.progress * 100)}%`;
+                        card.ui.scanStatus.innerText = `Scanning: ${Math.round(m.progress * 100)}%`;
                     }
                 }
             });
             
-            const { data: { text } } = await worker.recognize(imageUrl);
+            card.ui.scanStatus.innerText = "Reading Passport MRZ Data...";
+            const { data: { text } } = await worker.recognize(targetSrc);
             await worker.terminate();
             
-            console.log("Raw OCR Text:\n", text);
-            parseMRZ(text);
+            console.log(`Raw OCR Text (Card ID: ${card.id}):\n`, text);
+            parseMRZ(text, card);
 
         } catch (error) {
             console.error("OCR Error:", error);
-            showError("An error occurred while analyzing the image.");
+            showError(card, "An error occurred while analyzing the image.");
         }
     }
 
@@ -150,17 +309,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return str.replace(/[^A-Z0-9<]/g, '').toUpperCase();
     }
 
-    function parseMRZ(rawText) {
-        scanningOverlay.classList.add('hidden');
+    function parseMRZ(rawText, card) {
+        card.ui.scanningOverlay.classList.add('hidden');
         
-        // Clean the text to handle common OCR mistakes on standard MRZ fonts
-        // Replace common misreadings of '<'
         let cleanedText = rawText.replace(/[\(\[\{\©\«\<]/g, '<').toUpperCase();
-        
-        // Split into lines and filter empty ones
         const lines = cleanedText.split('\n').map(l => l.trim().replace(/\s+/g, '')).filter(l => l.length > 20);
         
-        // Find the 2 consecutive lines that look most like MRZ (often at the end)
         let mrzLine1 = null;
         let mrzLine2 = null;
 
@@ -168,8 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const l1 = cleanString(lines[i]);
             const l2 = cleanString(lines[i+1]);
             
-            // Basic MRZ checks: Line 1 usually starts with P, Type (P<), Country code
-            // Length should be around 44 for passports
             if (l1.startsWith('P') && l1.length >= 40 && l2.length >= 40 && l1.includes('<') && l2.includes('<')) {
                 mrzLine1 = l1.padEnd(44, '<').substring(0, 44);
                 mrzLine2 = l2.padEnd(44, '<').substring(0, 44);
@@ -178,43 +330,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!mrzLine1 || !mrzLine2) {
-            // Fallback: Just grab the last two long lines and hope for the best
             if (lines.length >= 2) {
                 mrzLine1 = cleanString(lines[lines.length - 2]).padEnd(44, '<').substring(0, 44);
                 mrzLine2 = cleanString(lines[lines.length - 1]).padEnd(44, '<').substring(0, 44);
             } else {
-                showError("Could not detect Machine Readable Zone (MRZ). Please ensure the bottom two lines are clearly visible.");
+                showError(card, "Could not detect MRZ. Try rotating the image or ensuring the bottom lines are visible.");
                 return;
             }
         }
 
-        console.log("Parsed Line 1:", mrzLine1);
-        console.log("Parsed Line 2:", mrzLine2);
-
         try {
-            // Extract Line 1 Data (P<LKA<SURNAME<<GIVEN<NAMES<<<<<<<<<<<<<<<<<)
-            // Fix OCR issues: Country code is exactly 3 letters
             const countryCode = mrzLine1.substring(2, 5).replace(/</g, '');
-            
             const nameParts = mrzLine1.substring(5).split('<<');
             let lastName = nameParts[0].replace(/</g, ' ').trim();
             let firstName = (nameParts[1] || '').replace(/</g, ' ').trim();
 
-            // Extract Line 2 Data (P0458549<8LKA7811296M3506042783340461V<<<<30)
             let passportNo = mrzLine2.substring(0, 9).replace(/</g, '');
             let nationality = mrzLine2.substring(10, 13).replace(/</g, '');
             
             let dobRaw = mrzLine2.substring(13, 19);
             let sex = mrzLine2.substring(20, 21);
-            if(sex !== 'M' && sex !== 'F') sex = (sex === 'P' || sex === 'H' ? 'M' : 'F'); // OCR corrections
+            if(sex !== 'M' && sex !== 'F') sex = (sex === 'P' || sex === 'H' ? 'M' : 'F'); 
             
             let expiryRaw = mrzLine2.substring(21, 27);
 
-            // Format Dates
             const formatDob = (yymmdd) => {
                 if(!/^\d{6}$/.test(yymmdd)) return yymmdd;
                 let year = parseInt(yymmdd.substring(0,2));
-                // Assume past century for DOB
                 year = year > new Date().getFullYear() % 100 ? 1900 + year : 2000 + year;
                 let month = yymmdd.substring(2,4);
                 let day = yymmdd.substring(4,6);
@@ -230,39 +372,50 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // Update UI
-            resFirstName.value = firstName || "";
-            resLastName.value = lastName || "";
-            resSex.value = sex === 'M' ? 'Male' : (sex === 'F' ? 'Female' : sex);
-            resNationality.value = nationality || countryCode || "";
-            resDob.value = formatDob(dobRaw) || "";
-            resPassportNo.value = passportNo || "";
-            resExpiry.value = formatExpiry(expiryRaw) || "";
+            card.ui.inputs.firstName.value = firstName || "";
+            card.ui.inputs.lastName.value = lastName || "";
+            card.ui.inputs.sex.value = sex === 'M' ? 'Male' : (sex === 'F' ? 'Female' : sex);
+            card.ui.inputs.nationality.value = nationality || countryCode || "";
+            card.ui.inputs.dob.value = formatDob(dobRaw) || "";
+            card.ui.inputs.passportNo.value = passportNo || "";
+            card.ui.inputs.expiry.value = formatExpiry(expiryRaw) || "";
 
-            resultsSection.classList.remove('hidden');
+            card.ui.resultsSection.classList.remove('hidden');
+            card.status = 'success';
         } catch (err) {
             console.error("Parsing error:", err);
-            showError("Failed to parse passport details. The image might be blurry.");
+            showError(card, "Failed to parse passport details. The image might be blurry.");
         }
     }
 
-    // Global copy function for the inline onclick handlers
-    window.copyText = function(elementId) {
-        const el = document.getElementById(elementId);
-        const text = el.value !== undefined ? el.value : el.innerText;
-        if (text && text !== '-') {
-            navigator.clipboard.writeText(text).then(() => {
-                // Find the icon that was clicked
-                const icon = document.querySelector(`[onclick="copyText('${elementId}')"]`);
-                if (icon) {
-                    const originalText = icon.innerText;
-                    icon.innerText = 'check';
-                    icon.style.color = 'var(--success-color)';
-                    setTimeout(() => {
-                        icon.innerText = originalText;
-                        icon.style.color = '';
-                    }, 1500);
-                }
-            }).catch(err => console.error("Failed to copy:", err));
+    function getCardDataText(card) {
+        let text = [];
+        for (const [key, input] of Object.entries(card.ui.inputs)) {
+            text.push(`${input.dataset.field}: ${input.value}`);
         }
-    };
+        return text.join('\n');
+    }
+
+    function copyToClipboard(text, iconElement) {
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+            const originalHTML = iconElement.innerHTML;
+            
+            // Check if iconElement is the button or the span inside it
+            let targetIcon = iconElement;
+            if(iconElement.tagName === 'BUTTON') {
+                targetIcon = iconElement.querySelector('.material-icons');
+            }
+            
+            if(targetIcon) {
+                 const originalIconHTML = targetIcon.innerHTML;
+                 targetIcon.innerText = 'check';
+                 targetIcon.style.color = 'var(--success-color)';
+                 setTimeout(() => {
+                     targetIcon.innerHTML = originalIconHTML;
+                     targetIcon.style.color = '';
+                 }, 1500);
+            }
+        }).catch(err => console.error("Failed to copy:", err));
+    }
 });

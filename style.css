@@ -70,12 +70,40 @@ body {
     padding: 40px 30px;
 }
 
-/* Upload Section */
 .upload-section {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 20px;
+}
+
+.global-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    flex-wrap: wrap;
+}
+
+.cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.passport-card {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .drop-zone {
@@ -132,16 +160,25 @@ body {
 .img-wrapper {
     width: 100%;
     height: 350px;
-    overflow: auto;
+    overflow: hidden;
     position: relative;
+    cursor: grab;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-#image-preview {
-    transform-origin: top left;
-    transition: transform 0.2s ease;
+.img-wrapper:active {
+    cursor: grabbing;
+}
+
+#image-preview, .image-preview {
+    transform-origin: center;
+    transition: transform 0.1s ease-out;
     display: block;
-    width: 100%;
-    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 
 .zoom-controls {
@@ -163,6 +200,22 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--primary-color);
+}
+
+.card-image-actions {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+}
+
+.card-image-actions .btn {
+    box-shadow: var(--shadow-md);
+    padding: 8px 16px;
+    font-size: 13px;
+    background-color: rgba(255, 255, 255, 0.95);
     color: var(--primary-color);
 }
 

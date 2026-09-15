@@ -1,4 +1,91 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const loginScreen = document.getElementById('login-screen');
+    const mainApp = document.getElementById('main-app');
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+    
+    // Trial logic constants
+    const TRIAL_START_DATE = new Date('2026-09-15T00:00:00');
+    const TRIAL_DAYS = 14;
+
+    function checkTrialStatus() {
+        const now = new Date();
+        const diffTime = now.getTime() - TRIAL_START_DATE.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const daysRemaining = TRIAL_DAYS - diffDays;
+        return daysRemaining;
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+
+        loginError.classList.add('hidden');
+
+        if (username === 'BPsanju' && password === 'Sanju@2027') {
+            // Admin login
+            loginSuccess({
+                username: 'BPsanju',
+                pic: null
+            });
+        } else if (username === 'Kamesh' && password === 'K@2027') {
+            // Trial user login
+            const daysRemaining = checkTrialStatus();
+            if (daysRemaining <= 0) {
+                loginError.textContent = 'Your 14-day trial has expired. You can no longer log in.';
+                loginError.classList.remove('hidden');
+            } else {
+                loginSuccess({
+                    username: 'Kamesh',
+                    pic: 'Kamesh/Kamesh Pic.jpg',
+                    trialMessage: `Welcome Kamesh! You have ${daysRemaining} days remaining in your trial.`
+                });
+            }
+        } else {
+            loginError.textContent = 'Invalid username or password.';
+            loginError.classList.remove('hidden');
+        }
+    });
+
+    function loginSuccess(user) {
+        loginScreen.classList.add('hidden');
+        mainApp.classList.remove('hidden');
+        
+        const profileName = document.getElementById('profile-name');
+        const profilePic = document.getElementById('profile-pic');
+        const userProfile = document.getElementById('user-profile');
+        
+        profileName.textContent = user.username;
+        if (user.pic) {
+            profilePic.src = user.pic;
+            profilePic.classList.remove('hidden');
+        } else {
+            profilePic.classList.add('hidden');
+        }
+        userProfile.classList.remove('hidden');
+        
+        // Remove existing banner if any
+        const existingBanner = mainApp.querySelector('.trial-banner');
+        if (existingBanner) {
+            existingBanner.remove();
+        }
+
+        if (user.trialMessage) {
+            const banner = document.createElement('div');
+            banner.className = 'trial-banner';
+            banner.textContent = user.trialMessage;
+            mainApp.insertBefore(banner, mainApp.firstChild);
+        }
+    }
+
+    document.getElementById('btn-logout').addEventListener('click', () => {
+        mainApp.classList.add('hidden');
+        loginScreen.classList.remove('hidden');
+        document.getElementById('login-form').reset();
+        loginError.classList.add('hidden');
+    });
+
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
     const cardsContainer = document.getElementById('cards-container');

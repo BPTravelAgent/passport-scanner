@@ -37,6 +37,88 @@ body {
     display: none !important;
 }
 
+/* Login Screen */
+.login-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--primary-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.login-card {
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.login-card h2 {
+    color: var(--primary-color);
+    margin-bottom: 25px;
+    font-size: 24px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 15px;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.login-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 14px;
+    font-size: 16px;
+}
+
+.error-text {
+    color: var(--error-color);
+    font-size: 14px;
+    margin-bottom: 15px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.trial-banner {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 12px 20px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 14px;
+    border-bottom: 1px solid #ffeeba;
+}
+
 .app-container {
     background: var(--card-bg);
     max-width: 800px;
@@ -49,14 +131,23 @@ body {
 .app-header {
     background-color: var(--primary-color);
     color: white;
-    padding: 30px 20px;
-    text-align: center;
+    padding: 20px 30px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-titles {
+    text-align: left;
 }
 
 .app-header h1 {
     font-weight: 600;
     font-size: 24px;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     letter-spacing: 0.5px;
 }
 
@@ -64,6 +155,51 @@ body {
     font-weight: 300;
     font-size: 14px;
     opacity: 0.9;
+    margin: 0;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 15px;
+    border-radius: 50px;
+}
+
+.profile-pic {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.profile-name {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 3px;
+}
+
+.btn-logout {
+    background: transparent;
+    border: none;
+    color: #ffb3b3;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    font-family: inherit;
+}
+
+.btn-logout:hover {
+    color: #ffcccc;
 }
 
 .main-content {

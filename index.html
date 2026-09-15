@@ -15,10 +15,40 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-container">
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <h2>Passport Scanner Login</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <div id="login-error" class="error-text hidden"></div>
+                <button type="submit" class="btn btn-primary login-btn">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container hidden" id="main-app">
         <header class="app-header">
-            <h1>Passport Scanner</h1>
-            <p>Upload your passport data page to extract details automatically.</p>
+            <div class="header-content">
+                <div class="header-titles">
+                    <h1>Passport Scanner</h1>
+                    <p>Upload your passport data page to extract details automatically.</p>
+                </div>
+                <div id="user-profile" class="user-profile hidden">
+                    <img id="profile-pic" src="" alt="Profile" class="profile-pic hidden">
+                    <div class="user-info">
+                        <span id="profile-name" class="profile-name"></span>
+                        <button id="btn-logout" class="btn-logout">Logout</button>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <main class="main-content">

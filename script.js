@@ -1,7 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ---- Firebase Configuration ----
+    const firebaseConfig = {
+        apiKey: "AIzaSyBcH-dZDDH9oRQG5X4c8dPjS5LfzasW4U",
+        authDomain: "bptravel-passport.firebaseapp.com",
+        projectId: "bptravel-passport",
+        storageBucket: "bptravel-passport.firebasestorage.app",
+        messagingSenderId: "493422251",
+        appId: "1:493422251:web:52c110869941ea688499ee",
+        measurementId: "G-TYNCCN49JM"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const USERS_COL_REF = db.collection('users');
+
     // ---- State Management ----
-    const STORAGE_KEY = 'passport_scanner_users';
-    
     // Default Users
     const defaultUsers = [
         {
@@ -43,32 +55,48 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     let users = [];
-
-    function loadUsers() {
-        const data = localStorage.getItem(STORAGE_KEY);
-        if (data) {
-            users = JSON.parse(data);
-            
-            // Auto-migrate: Ensure any new default users (like Piyumi) are added to existing localStorage
-            let updated = false;
-            defaultUsers.forEach(defUser => {
-                if (!users.some(u => u.username === defUser.username)) {
-                    users.push(defUser);
-                    updated = true;
-                }
-            });
-            if (updated) saveUsers();
-        } else {
-            users = [...defaultUsers];
-            saveUsers();
-        }
+    let isUsersLoaded = false;
+    const loginBtn = document.querySelector('#login-form button[type="submit"]');
+    
+    // Disable login until database loads
+    if(loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Connecting to Database...';
     }
 
-    function saveUsers() {
+    async function loadUsers() {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+            const snapshot = await USERS_COL_REF.get();
+            users = [];
+            snapshot.forEach(doc => {
+                users.push(doc.data());
+            });
+
+            // If empty (first time running Firebase), populate defaults
+            if (users.length === 0) {
+                for (let defUser of defaultUsers) {
+                    await USERS_COL_REF.doc(defUser.username).set(defUser);
+                    users.push(defUser);
+                }
+            } else {
+                // Auto-migrate: Ensure any new default users (like Piyumi) are added to Firebase
+                for (let defUser of defaultUsers) {
+                    if (!users.some(u => u.username === defUser.username)) {
+                        await USERS_COL_REF.doc(defUser.username).set(defUser);
+                        users.push(defUser);
+                    }
+                }
+            }
         } catch (e) {
-            alert('Error saving data. Storage might be full due to large profile pictures.');
+            console.error("Error loading users from Firebase:", e);
+            // Fallback if network issue
+            if(users.length === 0) users = [...defaultUsers];
+        } finally {
+            isUsersLoaded = true;
+            if(loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
         }
     }
 
@@ -262,6 +290,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     userForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = userForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+        
         const originalUsername = document.getElementById('edit-original-username').value;
         const newUsername = document.getElementById('add-username').value.trim();
         const password = document.getElementById('add-password').value;
@@ -273,6 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Check duplicate
         if (originalUsername !== newUsername && users.some(u => u.username === newUsername)) {
             alert('Username already exists!');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save User';
             return;
         }
 
@@ -291,34 +325,56 @@ document.addEventListener('DOMContentLoaded', () => {
             pic: picBase64
         };
 
-        if (originalUsername) {
-            // Edit existing
-            const index = users.findIndex(u => u.username === originalUsername);
-            // Retain old pic and start date if not changing
-            if (!picBase64) newUserObj.pic = users[index].pic;
-            if (type === 'trial' && users[index].type === 'trial' && originalUsername === newUsername) {
-                // If they are just editing but keeping it trial, retain start date
-                newUserObj.trialStartDate = users[index].trialStartDate;
+        try {
+            if (originalUsername) {
+                // Edit existing
+                const index = users.findIndex(u => u.username === originalUsername);
+                // Retain old pic and start date if not changing
+                if (!picBase64) newUserObj.pic = users[index].pic;
+                if (type === 'trial' && users[index].type === 'trial' && originalUsername === newUsername) {
+                    newUserObj.trialStartDate = users[index].trialStartDate;
+                }
+                
+                // Update Firebase
+                if (originalUsername !== newUsername) {
+                    // Username changed, so delete old doc and create new
+                    await USERS_COL_REF.doc(originalUsername).delete();
+                }
+                await USERS_COL_REF.doc(newUsername).set(newUserObj);
+                
+                // Update local array
+                users[index] = newUserObj;
+                if (currentUser.username === originalUsername) {
+                    currentUser = newUserObj;
+                }
+            } else {
+                // Add new
+                await USERS_COL_REF.doc(newUsername).set(newUserObj);
+                users.push(newUserObj);
             }
-            users[index] = newUserObj;
-            if (currentUser.username === originalUsername) {
-                currentUser = newUserObj;
-            }
-        } else {
-            // Add new
-            users.push(newUserObj);
-        }
 
-        saveUsers();
-        userModal.classList.add('hidden');
-        renderUserTable();
+            userModal.classList.add('hidden');
+            renderUserTable();
+        } catch (error) {
+            console.error("Error saving to Firebase:", error);
+            alert("Error saving user to database. Check connection.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save User';
+        }
     });
 
-    function deleteUser(index) {
+    async function deleteUser(index) {
         if (confirm(`Are you sure you want to delete ${users[index].username}?`)) {
-            users.splice(index, 1);
-            saveUsers();
-            renderUserTable();
+            try {
+                const username = users[index].username;
+                await USERS_COL_REF.doc(username).delete();
+                users.splice(index, 1);
+                renderUserTable();
+            } catch (error) {
+                console.error("Error deleting from Firebase:", error);
+                alert("Error deleting user from database.");
+            }
         }
     }
 

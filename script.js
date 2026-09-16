@@ -676,6 +676,18 @@ document.addEventListener('DOMContentLoaded', () => {
         pdfModal.classList.remove('hidden');
         pdfThumbnailsContainer.innerHTML = '';
         pdfLoadingIndicator.classList.remove('hidden');
+        
+        let selectedPages = new Set();
+        const scanBtn = document.getElementById('btn-scan-selected-pdf');
+        const countSpan = document.getElementById('pdf-selection-count');
+        
+        // Reset footer state
+        countSpan.innerText = '0 pages selected';
+        scanBtn.disabled = true;
+        
+        // Remove old event listeners by cloning
+        const newScanBtn = scanBtn.cloneNode(true);
+        scanBtn.parentNode.replaceChild(newScanBtn, scanBtn);
 
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -697,6 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const thumbDiv = document.createElement('div');
                 thumbDiv.className = 'pdf-thumbnail';
+                thumbDiv.dataset.page = pageNum;
                 
                 const img = document.createElement('img');
                 img.src = canvas.toDataURL('image/jpeg');
@@ -708,11 +721,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 thumbDiv.appendChild(img);
                 thumbDiv.appendChild(label);
                 
-                thumbDiv.addEventListener('click', async () => {
-                    pdfModal.classList.add('hidden');
+                thumbDiv.addEventListener('click', () => {
+                    if (selectedPages.has(pageNum)) {
+                        selectedPages.delete(pageNum);
+                        thumbDiv.classList.remove('selected');
+                    } else {
+                        selectedPages.add(pageNum);
+                        thumbDiv.classList.add('selected');
+                    }
                     
-                    // Render high-res for OCR
-                    const hrViewport = page.getViewport({ scale: 2.0 }); // 2.0 scale for better OCR
+                    countSpan.innerText = `${selectedPages.size} pages selected`;
+                    newScanBtn.disabled = selectedPages.size === 0;
+                });
+                
+                pdfThumbnailsContainer.appendChild(thumbDiv);
+            }
+            
+            newScanBtn.addEventListener('click', async () => {
+                if (selectedPages.size === 0) return;
+                
+                pdfModal.classList.add('hidden');
+                
+                // Process selected pages
+                for (const pageNum of Array.from(selectedPages).sort((a,b)=>a-b)) {
+                    const page = await pdf.getPage(pageNum);
+                    const hrViewport = page.getViewport({ scale: 2.0 });
                     const hrCanvas = document.createElement('canvas');
                     const hrCtx = hrCanvas.getContext('2d');
                     hrCanvas.width = hrViewport.width;
@@ -720,17 +753,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     await page.render({ canvasContext: hrCtx, viewport: hrViewport }).promise;
                     
-                    hrCanvas.toBlob((blob) => {
-                        const imgFile = new File([blob], `passport_page_${pageNum}.jpg`, { type: 'image/jpeg' });
-                        uploadSection.classList.add('hidden');
-                        globalActions.classList.remove('hidden');
-                        createPassportCard(imgFile);
-                        processQueue();
-                    }, 'image/jpeg', 0.95);
-                });
-                
-                pdfThumbnailsContainer.appendChild(thumbDiv);
-            }
+                    const blob = await new Promise(resolve => hrCanvas.toBlob(resolve, 'image/jpeg', 0.95));
+                    const imgFile = new File([blob], `passport_page_${pageNum}.jpg`, { type: 'image/jpeg' });
+                    
+                    uploadSection.classList.add('hidden');
+                    globalActions.classList.remove('hidden');
+                    createPassportCard(imgFile);
+                }
+                processQueue();
+            });
+            
         } catch (error) {
             console.error("Error loading PDF:", error);
             pdfLoadingIndicator.classList.add('hidden');

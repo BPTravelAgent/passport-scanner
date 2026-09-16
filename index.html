@@ -59,9 +59,9 @@
             <section class="upload-section" id="upload-section">
                 <div class="drop-zone" id="drop-zone">
                     <span class="material-icons upload-icon">upload_file</span>
-                    <p class="drop-text">Drag and drop, <span class="browse-link">browse</span>, or paste (Ctrl+V) an image</p>
-                    <p class="file-limits">(.JPG, .JPEG, .PNG Limit Size is 3 MB, Multiple allowed)</p>
-                    <input type="file" id="file-input" accept="image/jpeg, image/png, image/jpg" multiple hidden>
+                    <p class="drop-text">Drag and drop, <span class="browse-link">browse</span>, or paste (Ctrl+V) an image or PDF</p>
+                    <p class="file-limits">(.JPG, .JPEG, .PNG, .PDF Limit Size is 3 MB, Multiple allowed)</p>
+                    <input type="file" id="file-input" accept="image/jpeg, image/png, image/jpg, application/pdf" multiple hidden>
                 </div>
                 
                 <div style="text-align: center; margin-top: 20px;">
@@ -253,10 +253,32 @@
         </div>
     </div>
 
+    <!-- PDF Page Selector Modal -->
+    <div id="pdf-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 800px; width: 90%;">
+            <span class="close-modal" id="close-pdf-modal">&times;</span>
+            <h2 id="pdf-modal-title">Select Passport Page</h2>
+            <p style="margin-bottom: 15px; color: var(--text-light);">This PDF has multiple pages. Click on the page that contains the passport bio data to scan it.</p>
+            <div id="pdf-thumbnails-container" class="pdf-thumbnails-grid">
+                <!-- PDF page thumbnails will be rendered here -->
+            </div>
+            <div id="pdf-loading-indicator" class="hidden" style="text-align: center; padding: 20px;">
+                <div class="spinner" style="margin: 0 auto 10px auto;"></div>
+                <p>Loading PDF pages...</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     
     <!-- Main Script -->
     <script src="script.js?v=8"></script>

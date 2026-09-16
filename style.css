@@ -804,6 +804,7 @@ body {
     gap: 15px;
     width: 100%;
     max-width: 600px;
+}
 
 /* PDF Modal Styles */
 .pdf-thumbnails-grid {

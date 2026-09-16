@@ -23,7 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'pro',
             trialDays: 0,
             trialStartDate: null,
-            pic: null
+            pic: null,
+            scanCount: 0,
+            lastLogin: null,
+            isOnline: false,
+            lastScanTime: null
         },
         {
             username: 'Kamesh',
@@ -32,7 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'trial',
             trialDays: 14,
             trialStartDate: '2026-09-15T00:00:00.000Z',
-            pic: 'Kamesh/Kamesh Pic.jpg'
+            pic: 'Kamesh/Kamesh Pic.jpg',
+            scanCount: 0,
+            lastLogin: null,
+            isOnline: false,
+            lastScanTime: null
         },
         {
             username: 'Piumal',
@@ -41,7 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'trial',
             trialDays: 14,
             trialStartDate: '2026-09-15T00:00:00.000Z',
-            pic: 'Piumal/Piumal Pic.jpg'
+            pic: 'Piumal/Piumal Pic.jpg',
+            scanCount: 0,
+            lastLogin: null,
+            isOnline: false,
+            lastScanTime: null
         },
         {
             username: 'Piyumi',
@@ -50,7 +62,11 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'trial',
             trialDays: 30,
             trialStartDate: new Date().toISOString(), // Start trial today
-            pic: 'Piyumi/Piyumi Pic.jpg'
+            pic: 'Piyumi/Piyumi Pic.jpg',
+            scanCount: 0,
+            lastLogin: null,
+            isOnline: false,
+            lastScanTime: null
         }
     ];
 
@@ -65,39 +81,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadUsers() {
-        try {
-            const snapshot = await USERS_COL_REF.get();
-            users = [];
-            snapshot.forEach(doc => {
-                users.push(doc.data());
-            });
+        return new Promise((resolve) => {
+            USERS_COL_REF.onSnapshot(async (snapshot) => {
+                let tempUsers = [];
+                snapshot.forEach(doc => {
+                    tempUsers.push(doc.data());
+                });
 
-            // If empty (first time running Firebase), populate defaults
-            if (users.length === 0) {
-                for (let defUser of defaultUsers) {
-                    await USERS_COL_REF.doc(defUser.username).set(defUser);
-                    users.push(defUser);
-                }
-            } else {
-                // Auto-migrate: Ensure any new default users (like Piyumi) are added to Firebase
-                for (let defUser of defaultUsers) {
-                    if (!users.some(u => u.username === defUser.username)) {
+                if (tempUsers.length === 0 && !isUsersLoaded) {
+                    for (let defUser of defaultUsers) {
                         await USERS_COL_REF.doc(defUser.username).set(defUser);
-                        users.push(defUser);
+                        tempUsers.push(defUser);
+                    }
+                } else if (!isUsersLoaded) {
+                    // Auto-migrate
+                    for (let defUser of defaultUsers) {
+                        if (!tempUsers.some(u => u.username === defUser.username)) {
+                            await USERS_COL_REF.doc(defUser.username).set(defUser);
+                            tempUsers.push(defUser);
+                        }
                     }
                 }
-            }
-        } catch (e) {
-            console.error("Error loading users from Firebase:", e);
-            // Fallback if network issue
-            if(users.length === 0) users = [...defaultUsers];
-        } finally {
-            isUsersLoaded = true;
-            if(loginBtn) {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Login';
-            }
-        }
+                
+                users = tempUsers;
+                
+                if (!isUsersLoaded) {
+                    isUsersLoaded = true;
+                    if(loginBtn) {
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Login';
+                    }
+                    resolve();
+                }
+
+                // If admin dashboard is active, re-render the table
+                const adminDash = document.getElementById('admin-dashboard');
+                if (adminDash && !adminDash.classList.contains('hidden')) {
+                    renderUserTable();
+                }
+            }, (error) => {
+                console.error("Error loading users from Firebase:", error);
+                if (!isUsersLoaded) {
+                    users = [...defaultUsers];
+                    isUsersLoaded = true;
+                    if(loginBtn) {
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Login';
+                    }
+                    resolve();
+                }
+            });
+        });
     }
 
     loadUsers();
@@ -148,6 +182,12 @@ document.addEventListener('DOMContentLoaded', () => {
         loginScreen.classList.add('hidden');
         mainApp.classList.remove('hidden');
         
+        // Set online status and last login
+        USERS_COL_REF.doc(currentUser.username).update({
+            isOnline: true,
+            lastLogin: new Date().toISOString()
+        }).catch(console.error);
+        
         const profileName = document.getElementById('profile-name');
         const profilePic = document.getElementById('profile-pic');
         const userProfile = document.getElementById('user-profile');
@@ -185,6 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('btn-logout').addEventListener('click', () => {
+        if(currentUser) {
+            USERS_COL_REF.doc(currentUser.username).update({
+                isOnline: false
+            }).catch(console.error);
+        }
         mainApp.classList.add('hidden');
         document.getElementById('admin-dashboard').classList.add('hidden');
         document.querySelector('.main-content').classList.remove('hidden'); // Reset to scanner view
@@ -192,6 +237,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('login-form').reset();
         loginError.classList.add('hidden');
         currentUser = null;
+    });
+
+    window.addEventListener('beforeunload', () => {
+        if (currentUser) {
+            USERS_COL_REF.doc(currentUser.username).update({
+                isOnline: false
+            });
+        }
     });
 
     // ---- Admin Dashboard Logic ----
@@ -214,26 +267,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderUserTable() {
         userTableBody.innerHTML = '';
+        
+        let totalUsers = users.length;
+        let onlineUsers = 0;
+        let totalScans = 0;
+
         users.forEach((user, index) => {
+            totalScans += (user.scanCount || 0);
+            if(user.isOnline) onlineUsers++;
+
             const tr = document.createElement('tr');
             
             const picCell = user.pic ? `<img src="${user.pic}" class="table-profile-pic">` : `<div class="table-profile-pic"></div>`;
             const daysLeftStr = user.type === 'pro' ? 'Unlimited' : (getDaysRemaining(user) > 0 ? getDaysRemaining(user) : 'Expired');
             
+            const statusBadge = user.isOnline 
+                ? `<span class="status-badge status-online"><div class="status-dot"></div>Online</span>` 
+                : `<span class="status-badge status-offline"><div class="status-dot"></div>Offline</span>`;
+
+            const lastLoginStr = user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never';
+            const scanCountStr = user.scanCount || 0;
+            
             tr.innerHTML = `
                 <td>${picCell}</td>
+                <td>${statusBadge}</td>
                 <td>${user.username}</td>
-                <td>${user.password}</td>
                 <td><span style="text-transform: capitalize;">${user.role}</span></td>
                 <td><span style="text-transform: capitalize;">${user.type}</span></td>
                 <td>${daysLeftStr}</td>
+                <td>${lastLoginStr}</td>
+                <td>${scanCountStr}</td>
                 <td>
                     <button class="btn btn-secondary btn-edit-user" data-index="${index}" style="padding: 5px 10px; font-size: 12px;">Edit</button>
-                    ${user.username !== currentUser.username ? `<button class="btn btn-secondary btn-delete-user" data-index="${index}" style="padding: 5px 10px; font-size: 12px; border-color: var(--error-color); color: var(--error-color);">Delete</button>` : ''}
+                    <button class="btn btn-secondary btn-reset-stats" data-index="${index}" style="padding: 5px 10px; font-size: 12px; margin-left: 5px;">Reset</button>
+                    ${user.username !== currentUser.username ? `<button class="btn btn-secondary btn-delete-user" data-index="${index}" style="padding: 5px 10px; font-size: 12px; border-color: var(--error-color); color: var(--error-color); margin-left: 5px;">Delete</button>` : ''}
                 </td>
             `;
             userTableBody.appendChild(tr);
         });
+
+        // Update Summary Cards
+        const elTotalUsers = document.getElementById('stat-total-users');
+        const elOnlineUsers = document.getElementById('stat-online-users');
+        const elTotalScans = document.getElementById('stat-total-scans');
+        
+        if (elTotalUsers) elTotalUsers.innerText = totalUsers;
+        if (elOnlineUsers) elOnlineUsers.innerText = onlineUsers;
+        if (elTotalScans) elTotalScans.innerText = totalScans;
 
         document.querySelectorAll('.btn-edit-user').forEach(btn => {
             btn.addEventListener('click', (e) => openUserModal(e.target.dataset.index));
@@ -241,6 +321,23 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.btn-delete-user').forEach(btn => {
             btn.addEventListener('click', (e) => deleteUser(e.target.dataset.index));
         });
+        document.querySelectorAll('.btn-reset-stats').forEach(btn => {
+            btn.addEventListener('click', (e) => resetUserStats(e.target.dataset.index));
+        });
+    }
+
+    async function resetUserStats(index) {
+        if(confirm(`Are you sure you want to reset scan stats for ${users[index].username}?`)) {
+            try {
+                await USERS_COL_REF.doc(users[index].username).update({
+                    scanCount: 0,
+                    lastScanTime: null
+                });
+            } catch(e) {
+                console.error("Error resetting stats:", e);
+                alert("Failed to reset stats.");
+            }
+        }
     }
 
     document.getElementById('btn-open-add-user').addEventListener('click', () => {
@@ -322,18 +419,26 @@ document.addEventListener('DOMContentLoaded', () => {
             type: type,
             trialDays: type === 'pro' ? 0 : trialDays,
             trialStartDate: type === 'pro' ? null : new Date().toISOString(),
-            pic: picBase64
+            pic: picBase64,
+            scanCount: 0,
+            lastLogin: null,
+            isOnline: false,
+            lastScanTime: null
         };
 
         try {
             if (originalUsername) {
                 // Edit existing
                 const index = users.findIndex(u => u.username === originalUsername);
-                // Retain old pic and start date if not changing
+                // Retain old values if not changing
                 if (!picBase64) newUserObj.pic = users[index].pic;
                 if (type === 'trial' && users[index].type === 'trial' && originalUsername === newUsername) {
                     newUserObj.trialStartDate = users[index].trialStartDate;
                 }
+                newUserObj.scanCount = users[index].scanCount || 0;
+                newUserObj.lastLogin = users[index].lastLogin || null;
+                newUserObj.isOnline = users[index].isOnline || false;
+                newUserObj.lastScanTime = users[index].lastScanTime || null;
                 
                 // Update Firebase
                 if (originalUsername !== newUsername) {
@@ -878,6 +983,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             card.ui.resultsSection.classList.remove('hidden');
             card.status = 'success';
+            
+            // Increment Scan Count
+            if(currentUser) {
+                USERS_COL_REF.doc(currentUser.username).update({
+                    scanCount: firebase.firestore.FieldValue.increment(1),
+                    lastScanTime: new Date().toISOString()
+                }).catch(console.error);
+            }
         } catch (err) {
             console.error("Parsing error:", err);
             showError(card, "Failed to parse passport details. The image might be blurry.");

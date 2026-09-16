@@ -184,24 +184,46 @@ document.addEventListener('DOMContentLoaded', () => {
         loginScreen.classList.add('hidden');
         mainApp.classList.remove('hidden');
         
-        // Set online status, last login, and fetch location
-        fetch('https://ipapi.co/json/')
-            .then(res => res.json())
-            .then(data => {
-                let locString = data.city ? `${data.city}, ${data.country_name}` : 'Unknown';
-                USERS_COL_REF.doc(currentUser.username).update({
-                    isOnline: true,
-                    lastLogin: new Date().toISOString(),
-                    location: locString
-                }).catch(console.error);
-            })
-            .catch(err => {
-                console.error('Location fetch failed:', err);
-                USERS_COL_REF.doc(currentUser.username).update({
-                    isOnline: true,
-                    lastLogin: new Date().toISOString()
-                }).catch(console.error);
-            });
+        // Location Fetching Logic
+        function updateLocation(locString, lat, lon) {
+            let updateData = {
+                isOnline: true,
+                lastLogin: new Date().toISOString(),
+                location: locString
+            };
+            if (lat !== undefined && lon !== undefined) {
+                updateData.lat = lat;
+                updateData.lon = lon;
+            }
+            USERS_COL_REF.doc(currentUser.username).update(updateData).catch(console.error);
+        }
+
+        function fetchIPLocation() {
+            fetch('https://ipapi.co/json/')
+                .then(res => res.json())
+                .then(data => {
+                    let locString = data.city ? `${data.city}, ${data.country_name}` : 'Unknown';
+                    updateLocation(locString, data.latitude, data.longitude);
+                })
+                .catch(err => {
+                    console.error('Location fetch failed:', err);
+                    updateLocation('Unknown');
+                });
+        }
+
+        // Try HTML5 Geolocation first
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                updateLocation(`GPS: ${lat.toFixed(4)}, ${lon.toFixed(4)}`, lat, lon);
+            }, (error) => {
+                console.log('HTML5 Geolocation error/denied, falling back to IP.', error);
+                fetchIPLocation();
+            }, { timeout: 10000 });
+        } else {
+            fetchIPLocation();
+        }
         
         const profileName = document.getElementById('profile-name');
         const profilePic = document.getElementById('profile-pic');
@@ -302,7 +324,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const lastLoginStr = user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never';
             const scanCountStr = user.scanCount || 0;
-            const locationStr = user.location || 'Unknown';
+            let locationStr = user.location || 'Unknown';
+            if (user.lat && user.lon) {
+                locationStr = `<a href="https://www.google.com/maps/search/?api=1&query=${user.lat},${user.lon}" target="_blank" style="color: var(--primary-color); text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+                    <span class="material-icons" style="font-size: 14px;">place</span> ${locationStr}
+                </a>`;
+            }
             
             tr.innerHTML = `
                 <td>${picCell}</td>

@@ -27,7 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
             scanCount: 0,
             lastLogin: null,
             isOnline: false,
-            lastScanTime: null
+            lastScanTime: null,
+            location: 'Unknown'
         },
         {
             username: 'Kamesh',
@@ -66,7 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
             scanCount: 0,
             lastLogin: null,
             isOnline: false,
-            lastScanTime: null
+            lastScanTime: null,
+            location: 'Unknown'
         }
     ];
 
@@ -182,11 +184,24 @@ document.addEventListener('DOMContentLoaded', () => {
         loginScreen.classList.add('hidden');
         mainApp.classList.remove('hidden');
         
-        // Set online status and last login
-        USERS_COL_REF.doc(currentUser.username).update({
-            isOnline: true,
-            lastLogin: new Date().toISOString()
-        }).catch(console.error);
+        // Set online status, last login, and fetch location
+        fetch('https://ipapi.co/json/')
+            .then(res => res.json())
+            .then(data => {
+                let locString = data.city ? `${data.city}, ${data.country_name}` : 'Unknown';
+                USERS_COL_REF.doc(currentUser.username).update({
+                    isOnline: true,
+                    lastLogin: new Date().toISOString(),
+                    location: locString
+                }).catch(console.error);
+            })
+            .catch(err => {
+                console.error('Location fetch failed:', err);
+                USERS_COL_REF.doc(currentUser.username).update({
+                    isOnline: true,
+                    lastLogin: new Date().toISOString()
+                }).catch(console.error);
+            });
         
         const profileName = document.getElementById('profile-name');
         const profilePic = document.getElementById('profile-pic');
@@ -287,11 +302,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const lastLoginStr = user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never';
             const scanCountStr = user.scanCount || 0;
+            const locationStr = user.location || 'Unknown';
             
             tr.innerHTML = `
                 <td>${picCell}</td>
                 <td>${statusBadge}</td>
                 <td>${user.username}</td>
+                <td>${locationStr}</td>
                 <td><span style="text-transform: capitalize;">${user.role}</span></td>
                 <td><span style="text-transform: capitalize;">${user.type}</span></td>
                 <td>${daysLeftStr}</td>
@@ -425,7 +442,8 @@ document.addEventListener('DOMContentLoaded', () => {
             scanCount: 0,
             lastLogin: null,
             isOnline: false,
-            lastScanTime: null
+            lastScanTime: null,
+            location: 'Unknown'
         };
 
         try {
@@ -441,6 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 newUserObj.lastLogin = users[index].lastLogin || null;
                 newUserObj.isOnline = users[index].isOnline || false;
                 newUserObj.lastScanTime = users[index].lastScanTime || null;
+                newUserObj.location = users[index].location || 'Unknown';
                 
                 // Update Firebase
                 if (originalUsername !== newUsername) {

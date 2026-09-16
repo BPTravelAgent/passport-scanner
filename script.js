@@ -298,9 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${lastLoginStr}</td>
                 <td>${scanCountStr}</td>
                 <td>
-                    <button class="btn btn-secondary btn-edit-user" data-index="${index}" style="padding: 5px 10px; font-size: 12px;">Edit</button>
-                    <button class="btn btn-secondary btn-reset-stats" data-index="${index}" style="padding: 5px 10px; font-size: 12px; margin-left: 5px;">Reset</button>
-                    ${user.username !== currentUser.username ? `<button class="btn btn-secondary btn-delete-user" data-index="${index}" style="padding: 5px 10px; font-size: 12px; border-color: var(--error-color); color: var(--error-color); margin-left: 5px;">Delete</button>` : ''}
+                    <div style="display: flex; gap: 6px; flex-wrap: nowrap; min-width: max-content;">
+                        <button class="btn btn-secondary btn-edit-user" data-index="${index}" style="padding: 5px 10px; font-size: 12px;">Edit</button>
+                        <button class="btn btn-secondary btn-reset-stats" data-index="${index}" style="padding: 5px 10px; font-size: 12px;">Reset</button>
+                        ${user.username !== currentUser.username ? `<button class="btn btn-secondary btn-delete-user" data-index="${index}" style="padding: 5px 10px; font-size: 12px; border-color: var(--error-color); color: var(--error-color);">Delete</button>` : ''}
+                    </div>
                 </td>
             `;
             userTableBody.appendChild(tr);

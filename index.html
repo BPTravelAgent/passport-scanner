@@ -255,11 +255,11 @@
 
     <!-- PDF Page Selector Modal -->
     <div id="pdf-modal" class="modal hidden">
-        <div class="modal-content" style="max-width: 800px; width: 90%;">
+        <div class="modal-content" style="max-width: 800px; width: 90%; max-height: 90vh; display: flex; flex-direction: column;">
             <span class="close-modal" id="close-pdf-modal">&times;</span>
             <h2 id="pdf-modal-title">Select Passport Page</h2>
-            <p style="margin-bottom: 15px; color: var(--text-light);">This PDF has multiple pages. Click on the page that contains the passport bio data to scan it.</p>
-            <div id="pdf-thumbnails-container" class="pdf-thumbnails-grid">
+            <p style="margin-bottom: 15px; color: var(--text-light); flex-shrink: 0;">This PDF has multiple pages. Click on the page that contains the passport bio data to scan it.</p>
+            <div id="pdf-thumbnails-container" class="pdf-thumbnails-grid" style="max-height: none; flex: 1; overflow-y: auto;">
                 <!-- PDF page thumbnails will be rendered here -->
             </div>
             <div id="pdf-loading-indicator" class="hidden" style="text-align: center; padding: 20px;">

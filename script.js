@@ -957,6 +957,24 @@ document.addEventListener('DOMContentLoaded', () => {
             rescanCard(card);
         });
 
+        // Remove card logic
+        cardElement.querySelector('.btn-remove-card').addEventListener('click', () => {
+            if (isProcessing && card.status === 'scanning') {
+                alert("Please wait for the scan to finish before removing.");
+                return;
+            }
+            
+            cardElement.remove();
+            cardsData = cardsData.filter(c => c.id !== card.id);
+            scanQueue = scanQueue.filter(c => c.id !== card.id);
+            
+            if (cardsData.length === 0) {
+                uploadSection.classList.remove('hidden');
+                globalActions.classList.add('hidden');
+                document.getElementById('file-input').value = '';
+            }
+        });
+
         // Load Image
         const reader = new FileReader();
         reader.onload = (e) => {

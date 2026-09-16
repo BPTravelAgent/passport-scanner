@@ -589,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateTransform(card, 0, 0);
         });
 
-        // Mouse Drag to Pan
+        // Mouse and Touch Drag to Pan
         let isDragging = false;
         let startX, startY, initialPanX, initialPanY;
 
@@ -602,7 +602,21 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault(); // Prevent default image drag
         });
 
+        card.ui.imgWrapper.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                initialPanX = card.panX;
+                initialPanY = card.panY;
+            }
+        }, { passive: true });
+
         window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        window.addEventListener('touchend', () => {
             isDragging = false;
         });
 
@@ -617,6 +631,18 @@ document.addEventListener('DOMContentLoaded', () => {
             card.panY = initialPanY + dy;
             updateTransform(card, 0, 0);
         });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging || e.touches.length !== 1) return;
+            if (e.cancelable) e.preventDefault(); // Prevent scrolling while panning
+            
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            
+            card.panX = initialPanX + dx;
+            card.panY = initialPanY + dy;
+            updateTransform(card, 0, 0);
+        }, { passive: false });
 
         // Mouse Wheel to Zoom
         card.ui.imgWrapper.addEventListener('wheel', (e) => {

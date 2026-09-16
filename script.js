@@ -577,6 +577,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Paste Image Event
+    window.addEventListener('paste', (e) => {
+        // Ensure user is logged in and not in the admin dashboard
+        if (!currentUser) return;
+        const adminDash = document.getElementById('admin-dashboard');
+        if (adminDash && !adminDash.classList.contains('hidden')) return;
+
+        if (e.clipboardData && e.clipboardData.files.length > 0) {
+            const files = Array.from(e.clipboardData.files).filter(f => f.type.startsWith('image/'));
+            if (files.length > 0) {
+                e.preventDefault();
+                handleFiles(files);
+            }
+        }
+    });
+
     // ---- Camera Logic ----
     const cameraSection = document.getElementById('camera-section');
     const cameraFeed = document.getElementById('camera-feed');
